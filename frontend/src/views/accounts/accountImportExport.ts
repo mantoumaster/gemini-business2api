@@ -1,4 +1,4 @@
-import type { AccountConfigItem } from '@/types/api'
+import type { AccountConfigItem } from '@/types/accounts'
 import { normalizeConfigAccounts, readLegacyStringField } from './accountConfig'
 
 const IMPORT_EXPIRES_AT = '1970-01-01 00:00:00'

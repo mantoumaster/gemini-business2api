@@ -61,7 +61,7 @@
 
 <script setup lang="ts">
 import { computed, h, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
-import type { AccountQuotaStatus, QuotaStatus } from '@/types/api'
+import type { AccountQuotaStatus, QuotaStatus } from '@/types/accounts'
 
 const props = defineProps<{
   quotaStatus: AccountQuotaStatus

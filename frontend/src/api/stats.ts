@@ -1,10 +1,10 @@
 import apiClient from './client'
-import type { AdminStats } from '@/types/api'
+import type { AdminStats, DashboardTimeRange } from '@/types/dashboard'
 
 export const statsApi = {
-  overview(timeRange: string = '24h') {
-    return apiClient.get<AdminStats>('/admin/stats', {
-      params: { time_range: timeRange }
+  overview(timeRange: DashboardTimeRange = '24h') {
+    return apiClient.get<never, AdminStats>('/admin/stats', {
+      params: { time_range: timeRange },
     })
   },
 }

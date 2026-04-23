@@ -1,6 +1,11 @@
 import { onActivated, onBeforeUnmount, onDeactivated, onMounted, ref, watch } from 'vue'
 import { statsApi } from '@/api'
 import {
+  DASHBOARD_TIME_RANGE_OPTIONS,
+  normalizeDashboardTimeRange,
+} from '@/types/dashboard'
+import type { AdminStats, AdminStatsTrend, DashboardTimeRange } from '@/types/dashboard'
+import {
   chartColors,
   createLineSeries,
   createModelLegendConfig,
@@ -10,7 +15,6 @@ import {
   getModelColor,
   getPieChartTheme,
 } from '@/lib/chartTheme'
-
 
 export function useDashboardPage() {
   type ChartInstance = {
@@ -27,27 +31,12 @@ export function useDashboardPage() {
   }
   type RenderMode = 'initial' | 'range' | 'refresh'
   type ChartType = 'hourlyRequests' | 'trend' | 'successRate' | 'model' | 'modelRank' | 'responseTime'
-  type OverviewPayload = Record<string, any>
-
-  type TimeRange = '24h' | '7d' | '30d'
-  type DashboardRangesState = Record<ChartType, TimeRange>
+  type OverviewPayload = AdminStats
+  type DashboardRangesState = Record<ChartType, DashboardTimeRange>
 
   const DASHBOARD_RANGES_STORAGE_KEY = 'dashboard:chart-ranges:v1'
   const DASHBOARD_AUTO_REFRESH_MS = 15000
-
-  // 时间范围选择
-  const timeRanges = [
-    { label: '24小时', value: '24h' },
-    { label: '7天', value: '7d' },
-    { label: '30天', value: '30d' },
-  ] as const
-
-  const validRangeSet = new Set<TimeRange>(['24h', '7d', '30d'])
-
-  function sanitizeTimeRange(value: unknown, fallback: TimeRange = '24h'): TimeRange {
-    const raw = String(value || '').trim() as TimeRange
-    return validRangeSet.has(raw) ? raw : fallback
-  }
+  const timeRanges = DASHBOARD_TIME_RANGE_OPTIONS
 
   function loadStoredRanges(): Partial<DashboardRangesState> {
     if (typeof window === 'undefined') return {}
@@ -56,12 +45,12 @@ export function useDashboardPage() {
       if (!raw) return {}
       const parsed = JSON.parse(raw) as Partial<Record<ChartType, unknown>>
       return {
-        hourlyRequests: sanitizeTimeRange(parsed.hourlyRequests),
-        trend: sanitizeTimeRange(parsed.trend),
-        successRate: sanitizeTimeRange(parsed.successRate),
-        model: sanitizeTimeRange(parsed.model),
-        modelRank: sanitizeTimeRange(parsed.modelRank),
-        responseTime: sanitizeTimeRange(parsed.responseTime),
+        hourlyRequests: normalizeDashboardTimeRange(parsed.hourlyRequests),
+        trend: normalizeDashboardTimeRange(parsed.trend),
+        successRate: normalizeDashboardTimeRange(parsed.successRate),
+        model: normalizeDashboardTimeRange(parsed.model),
+        modelRank: normalizeDashboardTimeRange(parsed.modelRank),
+        responseTime: normalizeDashboardTimeRange(parsed.responseTime),
       }
     } catch {
       return {}
@@ -70,23 +59,22 @@ export function useDashboardPage() {
 
   const storedRanges = loadStoredRanges()
 
-  // 每个图表独立的时间范围
-  const timeRangeHourlyRequests = ref<TimeRange>(sanitizeTimeRange(storedRanges.hourlyRequests))
-  const timeRangeTrend = ref<TimeRange>(sanitizeTimeRange(storedRanges.trend))
-  const timeRangeSuccessRate = ref<TimeRange>(sanitizeTimeRange(storedRanges.successRate))
-  const timeRangeModel = ref<TimeRange>(sanitizeTimeRange(storedRanges.model))
-  const timeRangeModelRank = ref<TimeRange>(sanitizeTimeRange(storedRanges.modelRank))
-  const timeRangeResponseTime = ref<TimeRange>(sanitizeTimeRange(storedRanges.responseTime))
+  const timeRangeHourlyRequests = ref<DashboardTimeRange>(normalizeDashboardTimeRange(storedRanges.hourlyRequests))
+  const timeRangeTrend = ref<DashboardTimeRange>(normalizeDashboardTimeRange(storedRanges.trend))
+  const timeRangeSuccessRate = ref<DashboardTimeRange>(normalizeDashboardTimeRange(storedRanges.successRate))
+  const timeRangeModel = ref<DashboardTimeRange>(normalizeDashboardTimeRange(storedRanges.model))
+  const timeRangeModelRank = ref<DashboardTimeRange>(normalizeDashboardTimeRange(storedRanges.modelRank))
+  const timeRangeResponseTime = ref<DashboardTimeRange>(normalizeDashboardTimeRange(storedRanges.responseTime))
 
   function persistRanges() {
     if (typeof window === 'undefined') return
     const ranges: DashboardRangesState = {
-      hourlyRequests: sanitizeTimeRange(timeRangeHourlyRequests.value),
-      trend: sanitizeTimeRange(timeRangeTrend.value),
-      successRate: sanitizeTimeRange(timeRangeSuccessRate.value),
-      model: sanitizeTimeRange(timeRangeModel.value),
-      modelRank: sanitizeTimeRange(timeRangeModelRank.value),
-      responseTime: sanitizeTimeRange(timeRangeResponseTime.value),
+      hourlyRequests: normalizeDashboardTimeRange(timeRangeHourlyRequests.value),
+      trend: normalizeDashboardTimeRange(timeRangeTrend.value),
+      successRate: normalizeDashboardTimeRange(timeRangeSuccessRate.value),
+      model: normalizeDashboardTimeRange(timeRangeModel.value),
+      modelRank: normalizeDashboardTimeRange(timeRangeModelRank.value),
+      responseTime: normalizeDashboardTimeRange(timeRangeResponseTime.value),
     }
     try {
       window.localStorage.setItem(DASHBOARD_RANGES_STORAGE_KEY, JSON.stringify(ranges))
@@ -95,16 +83,14 @@ export function useDashboardPage() {
     }
   }
 
-  // 创建图表监听器的工厂函数
   function createChartWatcher(chartType: ChartType, updateFn: (mode?: RenderMode) => void) {
-    return async (newVal: TimeRange) => {
+    return async (newVal: DashboardTimeRange) => {
       persistRanges()
       await loadChartData(chartType, newVal)
       updateFn('range')
     }
   }
 
-  // 监听各图表时间范围变化 - 只更新对应图表
   watch(timeRangeHourlyRequests, createChartWatcher('hourlyRequests', updateHourlyRequestsChart))
   watch(timeRangeTrend, createChartWatcher('trend', updateTrendChart))
   watch(timeRangeSuccessRate, createChartWatcher('successRate', updateSuccessRateChart))
@@ -178,8 +164,8 @@ export function useDashboardPage() {
     },
   })
 
-  const overviewCache = new Map<string, OverviewPayload>()
-  const overviewRequests = new Map<string, Promise<OverviewPayload>>()
+  const overviewCache = new Map<DashboardTimeRange, OverviewPayload>()
+  const overviewRequests = new Map<DashboardTimeRange, Promise<OverviewPayload>>()
 
   const trendChartRef = ref<HTMLDivElement | null>(null)
   const modelChartRef = ref<HTMLDivElement | null>(null)
@@ -436,26 +422,26 @@ export function useDashboardPage() {
     })
   }
 
-  function getChartRange(chartType: ChartType): TimeRange {
+  function getChartRange(chartType: ChartType): DashboardTimeRange {
     switch (chartType) {
       case 'hourlyRequests':
-        return sanitizeTimeRange(timeRangeHourlyRequests.value)
+        return normalizeDashboardTimeRange(timeRangeHourlyRequests.value)
       case 'trend':
-        return sanitizeTimeRange(timeRangeTrend.value)
+        return normalizeDashboardTimeRange(timeRangeTrend.value)
       case 'successRate':
-        return sanitizeTimeRange(timeRangeSuccessRate.value)
+        return normalizeDashboardTimeRange(timeRangeSuccessRate.value)
       case 'model':
-        return sanitizeTimeRange(timeRangeModel.value)
+        return normalizeDashboardTimeRange(timeRangeModel.value)
       case 'modelRank':
-        return sanitizeTimeRange(timeRangeModelRank.value)
+        return normalizeDashboardTimeRange(timeRangeModelRank.value)
       case 'responseTime':
-        return sanitizeTimeRange(timeRangeResponseTime.value)
+        return normalizeDashboardTimeRange(timeRangeResponseTime.value)
     }
   }
 
-  function getActiveRanges() {
+  function getActiveRanges(): DashboardTimeRange[] {
     return Array.from(
-      new Set<string>([
+      new Set<DashboardTimeRange>([
         '24h',
         timeRangeHourlyRequests.value,
         timeRangeTrend.value,
@@ -481,7 +467,7 @@ export function useDashboardPage() {
     }, DASHBOARD_AUTO_REFRESH_MS)
   }
 
-  async function getOverview(timeRange: string, options: { force?: boolean } = {}) {
+  async function getOverview(timeRange: DashboardTimeRange, options: { force?: boolean } = {}) {
     if (options.force) {
       overviewCache.delete(timeRange)
     }
@@ -495,9 +481,8 @@ export function useDashboardPage() {
     const request = statsApi
       .overview(timeRange)
       .then((overview) => {
-        const payload = overview as OverviewPayload
-        overviewCache.set(timeRange, payload)
-        return payload
+        overviewCache.set(timeRange, overview)
+        return overview
       })
       .finally(() => {
         overviewRequests.delete(timeRange)
@@ -514,7 +499,7 @@ export function useDashboardPage() {
     stats.value[3].value = (overview.rate_limited_accounts ?? 0).toString()
   }
 
-  function getTrendPayload(overview: OverviewPayload) {
+  function getTrendPayload(overview: OverviewPayload): AdminStatsTrend {
     return overview.trend || {
       labels: [],
       total_requests: [],
@@ -606,7 +591,7 @@ export function useDashboardPage() {
     }
   }
 
-  async function loadChartData(chartType: ChartType, timeRange: string) {
+  async function loadChartData(chartType: ChartType, timeRange: DashboardTimeRange) {
     try {
       const overview = await getOverview(timeRange)
       applyOverviewToChartData(chartType, overview)

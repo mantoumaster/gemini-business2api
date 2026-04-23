@@ -1,3 +1,9 @@
+import type {
+  BrowserMode,
+  ImageOutputFormat,
+  TempMailProvider,
+  VideoOutputFormat,
+} from '@/types/settings'
 import { DEFAULT_RETRY_SETTINGS } from './settingsDefaults'
 
 export const DEFAULT_COOLDOWN_HOURS = {
@@ -10,7 +16,7 @@ export const browserModeOptions = [
   { label: 'normal - 正常窗口', value: 'normal' },
   { label: 'silent - 静默窗口', value: 'silent' },
   { label: 'headless - 无头', value: 'headless' },
-]
+] satisfies Array<{ label: string; value: BrowserMode }>
 
 export const tempMailProviderOptions = [
   { label: 'DuckMail', value: 'duckmail' },
@@ -18,15 +24,15 @@ export const tempMailProviderOptions = [
   { label: 'Freemail', value: 'freemail' },
   { label: 'GPTMail', value: 'gptmail' },
   { label: 'Cloudflare Mail', value: 'cfmail' },
-]
+] satisfies Array<{ label: string; value: TempMailProvider }>
 
 export const imageOutputOptions = [
   { label: 'Base64 编码', value: 'base64' },
   { label: 'URL 链接', value: 'url' },
-]
+] satisfies Array<{ label: string; value: ImageOutputFormat }>
 
 export const videoOutputOptions = [
   { label: 'HTML 视频标签', value: 'html' },
   { label: 'URL 链接', value: 'url' },
   { label: 'Markdown 格式', value: 'markdown' },
-]
+] satisfies Array<{ label: string; value: VideoOutputFormat }>

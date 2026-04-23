@@ -1,5 +1,5 @@
 import type { ActionMenuItem } from 'nanocat-ui'
-import type { AdminAccount } from '@/types/api'
+import type { AdminAccount } from '@/types/accounts'
 import { getAccountStateMeta, resolveAccountStateCode } from './accountState'
 
 export const accountBatchMenuItems: ActionMenuItem[] = [

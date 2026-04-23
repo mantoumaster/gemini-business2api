@@ -21,6 +21,29 @@ const exportFormatOptions = [
   { label: 'TXT', value: 'txt' },
 ] as const
 
+const importFormatTips = [
+  'JSON 数组，或带 accounts 字段的 JSON 对象（脚本复制 / 导出配置都可直接导入）',
+  'duckmail / moemail：provider----邮箱----密码',
+  'freemail：freemail----邮箱----base_url----jwt_token----verify_ssl----domain',
+  'gptmail：gptmail----邮箱',
+  'cfmail：cfmail----邮箱----密码',
+  'Microsoft / OAuth：邮箱----密码----client_id----refresh_token',
+] as const
+
+const importTextareaPlaceholder = [
+  '支持 JSON 数组、JSON 对象（含 accounts 字段），也支持逐行文本导入。',
+  '',
+  '示例：',
+  'duckmail----邮箱----密码',
+  'moemail----邮箱----密码',
+  'freemail----邮箱----base_url----jwt_token----true----domain',
+  'gptmail----邮箱',
+  'cfmail----邮箱----密码',
+  '邮箱----密码----client_id----refresh_token',
+  '',
+  '提示：油猴脚本复制出的 JSON，可以直接粘贴到这里。',
+].join('\n')
+
 const downloadText = (content: string, filename: string, mime: string) => {
   const blob = new Blob([content], { type: mime })
   const url = URL.createObjectURL(blob)
@@ -175,9 +198,11 @@ export function useAccountImportExport(
     isImportOpen,
     importText,
     importError,
+    importFormatTips,
     isImporting,
     importFileInput,
     importFileName,
+    importTextareaPlaceholder,
     isExportOpen,
     exportScope,
     exportFormat,

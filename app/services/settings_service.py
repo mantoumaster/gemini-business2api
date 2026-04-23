@@ -74,7 +74,10 @@ def _normalize_video_output_format(value: str) -> str:
     normalized = _clean_str(value).lower()
     if normalized in {"url", "markdown"}:
         return normalized
-    return "html"
+    return "url"
+
+
+REMOVED_IMAGE_MODELS = {"gemini-3-pro-preview"}
 
 
 def _normalize_string_list(values: list[str] | None) -> list[str]:
@@ -83,7 +86,7 @@ def _normalize_string_list(values: list[str] | None) -> list[str]:
 
     for value in values or []:
         item = _clean_str(value)
-        if not item or item in seen:
+        if not item or item in REMOVED_IMAGE_MODELS or item in seen:
             continue
         seen.add(item)
         normalized.append(item)
@@ -226,7 +229,7 @@ def get_settings_payload(current_config: Any) -> AdminSettingsPayload:
         ),
         image_generation=ImageGenerationSettingsPayload(
             enabled=current_config.image_generation.enabled,
-            supported_models=current_config.image_generation.supported_models,
+            supported_models=_normalize_string_list(current_config.image_generation.supported_models),
             output_format=current_config.image_generation.output_format,
         ),
         video_generation=VideoGenerationSettingsPayload(

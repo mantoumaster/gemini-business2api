@@ -56,7 +56,6 @@
 | `gemini-2.5-flash`       | ✅      | ✅          | ✅               | Optional  | -         |
 | `gemini-2.5-pro`         | ✅      | ✅          | ✅               | Optional  | -         |
 | `gemini-3-flash-preview` | ✅      | ✅          | ✅               | Optional  | -         |
-| `gemini-3-pro-preview`   | ✅      | ✅          | ✅               | Optional  | -         |
 | `gemini-3.1-pro-preview` | ✅      | ✅          | ✅               | Optional  | -         |
 | `gemini-imagen`          | ✅      | ✅          | ✅               | ✅         | -         |
 | `gemini-veo`             | ✅      | ✅          | ✅               | -         | ✅         |

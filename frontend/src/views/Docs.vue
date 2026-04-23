@@ -83,7 +83,7 @@
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d '{
-    "model": "gemini-3-pro-preview",
+    "model": "gemini-3.1-pro-preview",
     "stream": true,
     "temperature": 0.7,
     "top_p": 1,

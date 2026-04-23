@@ -163,7 +163,7 @@ class ImageGenerationConfig(BaseModel):
 class VideoGenerationConfig(BaseModel):
     """Video generation settings."""
 
-    output_format: str = Field(default="html", description="html / url / markdown")
+    output_format: str = Field(default="url", description="html / url / markdown")
 
     @validator("output_format")
     def validate_output_format(cls, value: str) -> str:
@@ -177,7 +177,7 @@ class RetryConfig(BaseModel):
     """Runtime retry and refresh automation settings."""
 
     max_account_switch_tries: int = Field(default=5, ge=1, le=20)
-    rate_limit_cooldown_seconds: int = Field(default=7200, ge=3600, le=43200)
+    rate_limit_cooldown_seconds: int = Field(default=7200, ge=3600, le=86400)
     text_rate_limit_cooldown_seconds: int = Field(default=7200, ge=3600, le=86400)
     images_rate_limit_cooldown_seconds: int = Field(default=14400, ge=3600, le=86400)
     videos_rate_limit_cooldown_seconds: int = Field(default=14400, ge=3600, le=86400)
@@ -200,9 +200,9 @@ class QuotaLimitsConfig(BaseModel):
     """Daily quota limit settings."""
 
     enabled: bool = Field(default=True)
-    text_daily_limit: int = Field(default=120, ge=0, le=999999)
-    images_daily_limit: int = Field(default=2, ge=0, le=999999)
-    videos_daily_limit: int = Field(default=1, ge=0, le=999999)
+    text_daily_limit: int = Field(default=200, ge=0, le=999999)
+    images_daily_limit: int = Field(default=10, ge=0, le=999999)
+    videos_daily_limit: int = Field(default=3, ge=0, le=999999)
 
 
 class PublicDisplayConfig(BaseModel):

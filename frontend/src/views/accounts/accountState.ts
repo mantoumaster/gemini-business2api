@@ -1,4 +1,4 @@
-import type { AccountStateCode, AdminAccount } from '@/types/api'
+import type { AccountStateCode, AdminAccount } from '@/types/accounts'
 
 export type AccountStatusFilter = 'all' | AccountStateCode
 

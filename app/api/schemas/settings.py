@@ -58,7 +58,7 @@ class BasicSettingsPayload(StrictModel):
 
 class RetrySettingsPayload(StrictModel):
     max_account_switch_tries: int = Field(..., ge=1, le=20)
-    rate_limit_cooldown_seconds: int = Field(..., ge=3600, le=43200)
+    rate_limit_cooldown_seconds: int = Field(..., ge=3600, le=86400)
     text_rate_limit_cooldown_seconds: int = Field(..., ge=3600, le=86400)
     images_rate_limit_cooldown_seconds: int = Field(..., ge=3600, le=86400)
     videos_rate_limit_cooldown_seconds: int = Field(..., ge=3600, le=86400)

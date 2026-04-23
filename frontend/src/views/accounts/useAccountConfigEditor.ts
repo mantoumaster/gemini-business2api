@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import type { useToast } from '@/composables/useToast'
 import type { useAccountsStore } from '@/stores/accounts'
-import type { AccountConfigItem } from '@/types/api'
+import type { AccountConfigItem } from '@/types/accounts'
 import {
   applyAccountEditForm,
   createAccountEditForm,
