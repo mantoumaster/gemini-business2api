@@ -1,110 +1,200 @@
-    // ==UserScript==
-    // @name         Gemini Business Helper
-    // @version      2.0
-    // @description  自动下载配置
-    // @match        https://business.gemini.google/*
-    // @grant        GM_addStyle
-    // @grant        GM_cookie
-    // ==/UserScript==
+// ==UserScript==
+// @name         Gemini Business Import JSON Helper
+// @version      2.1.0
+// @description  Copy import-ready gemini-business2api account JSON. Shift+Click downloads a file.
+// @match        https://business.gemini.google/*
+// @grant        GM_addStyle
+// @grant        GM_cookie
+// @grant        GM_setClipboard
+// ==/UserScript==
 
-    (function() {
-        'use strict';
+(function () {
+  'use strict';
 
-        GM_addStyle(`
-            #gb-btn {
-                position: fixed;
-                bottom: 32px;
-                right: 32px;
-                width: 60px;
-                height: 60px;
-                background: #1a73e8;
-                border-radius: 50%;
-                box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-                cursor: pointer;
-                z-index: 9999;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: white;
-                font-size: 24px;
-                transition: all 0.2s;
-            }
-            #gb-btn:hover {
-                transform: scale(1.1);
-                background: #1557b0;
-            }
-        `);
+  const BUTTON_ID = 'gb-btn';
+  const DEFAULT_LABEL = 'Copy JSON';
+  const COPY_LABEL = 'Copied';
+  const DOWNLOAD_LABEL = 'Saved';
+  const ERROR_LABEL = 'Error';
+  const DEFAULT_TITLE = 'Click to copy import-ready JSON. Shift+Click downloads a file.';
 
-        const btn = document.createElement('div');
-        btn.id = 'gb-btn';
-        btn.textContent = '⬇';
-        btn.title = '下载配置';
-        document.body.appendChild(btn);
+  GM_addStyle(`
+    #${BUTTON_ID} {
+      position: fixed;
+      right: 32px;
+      bottom: 32px;
+      min-width: 86px;
+      height: 44px;
+      padding: 0 14px;
+      border: none;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #1a73e8, #1557b0);
+      box-shadow: 0 10px 26px rgba(26, 115, 232, 0.28);
+      cursor: pointer;
+      z-index: 9999;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+      user-select: none;
+    }
 
-        const formatTime = (ts) => {
-            if (!ts) return null;
-            const d = new Date((ts - 43200) * 1000);
-            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
-        };
+    #${BUTTON_ID}:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 30px rgba(26, 115, 232, 0.32);
+    }
 
-        const download = (data, filename) => {
-            const blob = new Blob([data], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        };
+    #${BUTTON_ID}:active {
+      transform: translateY(0);
+    }
+  `);
 
-        btn.onclick = () => {
-            const pathParts = window.location.pathname.split('/');
-            const cidIndex = pathParts.indexOf('cid');
-            const config_id = (cidIndex !== -1 && pathParts[cidIndex + 1]) || null;
-            const csesidx = new URLSearchParams(window.location.search).get('csesidx');
+  const button = document.createElement('button');
+  button.id = BUTTON_ID;
+  button.type = 'button';
+  button.textContent = DEFAULT_LABEL;
+  button.title = DEFAULT_TITLE;
+  document.body.appendChild(button);
 
-            let email = localStorage.getItem('gemini_user_email');
-            if (!email) {
-                email = prompt('请输入您的邮箱地址：');
-                if (email) {
-                    localStorage.setItem('gemini_user_email', email);
-                }
-            }
+  let resetTimer = null;
 
-            GM_cookie('list', {}, (cookies, error) => {
-                if (error || !config_id || !csesidx || !email) {
-                    alert('❌ 数据不完整');
-                    return;
-                }
+  const setButtonState = (label, background, title = DEFAULT_TITLE) => {
+    button.textContent = label;
+    button.title = title;
+    button.style.background = background;
+  };
 
-                const host_c_oses = (cookies.find(c => c.name === '__Host-C_OSES') || {}).value || null;
-                const sesCookie = cookies.find(c => c.name === '__Secure-C_SES') || {};
-                const secure_c_ses = sesCookie.value || null;
+  const flashButtonState = (label, background, title = DEFAULT_TITLE) => {
+    if (resetTimer) {
+      clearTimeout(resetTimer);
+      resetTimer = null;
+    }
 
-                if (!secure_c_ses) {
-                    alert('❌ Cookie 读取失败');
-                    return;
-                }
+    setButtonState(label, background, title);
+    resetTimer = window.setTimeout(() => {
+      setButtonState(DEFAULT_LABEL, 'linear-gradient(135deg, #1a73e8, #1557b0)', DEFAULT_TITLE);
+      resetTimer = null;
+    }, 1600);
+  };
 
-                const data = {
-                    id: email,
-                    csesidx,
-                    config_id,
-                    secure_c_ses,
-                    host_c_oses,
-                    expires_at: formatTime(sesCookie.expirationDate)
-                };
+  const formatTime = (timestamp) => {
+    if (!timestamp) return '';
+    const date = new Date((timestamp - 43200) * 1000);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
+  };
 
-                download(JSON.stringify(data, null, 2), `${email}.json`);
+  const sanitizeFileName = (value) => {
+    const safe = String(value || 'account').trim().replace(/[\\/:*?"<>|]+/g, '_');
+    return safe || 'account';
+  };
 
-                btn.textContent = '✓';
-                btn.style.background = '#1e8e3e';
-                setTimeout(() => {
-                    btn.textContent = '⬇';
-                    btn.style.background = '#1a73e8';
-                }, 1500);
-            });
-        };
-    })();
+  const buildImportRecord = ({ email, csesidx, configId, secureCSes, hostCOses, expiresAt }) => ({
+    id: email,
+    secure_c_ses: secureCSes,
+    csesidx,
+    config_id: configId,
+    host_c_oses: hostCOses || '',
+    expires_at: expiresAt || '',
+  });
+
+  const buildImportJson = (record) => JSON.stringify([record], null, 2);
+
+  const download = (content, filename) => {
+    const blob = new Blob([content], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  };
+
+  const copyToClipboard = async (text) => {
+    if (typeof GM_setClipboard === 'function') {
+      GM_setClipboard(text, 'text');
+      return;
+    }
+
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', 'true');
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+  };
+
+  const getEmail = () => {
+    let email = localStorage.getItem('gemini_user_email');
+    if (!email) {
+      email = window.prompt('Enter the account email to build import JSON:', '') || '';
+      email = email.trim();
+      if (email) {
+        localStorage.setItem('gemini_user_email', email);
+      }
+    }
+    return email?.trim() || '';
+  };
+
+  button.addEventListener('click', (event) => {
+    const pathParts = window.location.pathname.split('/');
+    const cidIndex = pathParts.indexOf('cid');
+    const configId = (cidIndex !== -1 && pathParts[cidIndex + 1]) || '';
+    const csesidx = new URLSearchParams(window.location.search).get('csesidx') || '';
+    const email = getEmail();
+    const shouldDownload = event.shiftKey === true;
+
+    GM_cookie('list', {}, async (cookies, error) => {
+      try {
+        if (error || !configId || !csesidx || !email) {
+          throw new Error('Missing config_id / csesidx / email.');
+        }
+
+        const hostCOses = (cookies.find((cookie) => cookie.name === '__Host-C_OSES') || {}).value || '';
+        const sesCookie = cookies.find((cookie) => cookie.name === '__Secure-C_SES') || {};
+        const secureCSes = sesCookie.value || '';
+
+        if (!secureCSes) {
+          throw new Error('Unable to read __Secure-C_SES cookie.');
+        }
+
+        const payload = buildImportJson(
+          buildImportRecord({
+            email,
+            csesidx,
+            configId,
+            secureCSes,
+            hostCOses,
+            expiresAt: formatTime(sesCookie.expirationDate),
+          }),
+        );
+
+        if (shouldDownload) {
+          download(payload, `${sanitizeFileName(email)}.json`);
+          flashButtonState(DOWNLOAD_LABEL, '#1e8e3e', 'Import JSON downloaded');
+          return;
+        }
+
+        await copyToClipboard(payload);
+        flashButtonState(COPY_LABEL, '#1e8e3e', 'Import JSON copied');
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Build failed.';
+        flashButtonState(ERROR_LABEL, '#d93025', message);
+        window.alert(`Error: ${message}`);
+      }
+    });
+  });
+})();

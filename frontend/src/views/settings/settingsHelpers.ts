@@ -1,4 +1,9 @@
-import type { RefreshSettings } from '@/types/api'
+import type {
+  BrowserMode,
+  ImageOutputFormat,
+  TempMailProvider,
+  VideoOutputFormat,
+} from '@/types/settings'
 
 export const clampInteger = (
   value: number,
@@ -30,10 +35,24 @@ export const pickBoolean = (fallback: boolean, ...values: Array<boolean | undefi
   return fallback
 }
 
+export const normalizeInteger = (
+  fallback: number,
+  min: number,
+  max: number,
+  ...values: Array<number | undefined>
+) => clampInteger(pickNumber(fallback, ...values), min, max)
+
+export const normalizeDecimal = (
+  fallback: number,
+  min: number,
+  max: number,
+  ...values: Array<number | undefined>
+) => clampDecimal(pickNumber(fallback, ...values), min, max)
+
 export const normalizeBrowserMode = (
   mode: string | undefined,
   headless: boolean | undefined,
-): RefreshSettings['browser_mode'] => {
+): BrowserMode => {
   const normalized = mode?.trim().toLowerCase()
   if (normalized === 'normal' || normalized === 'silent' || normalized === 'headless') {
     return normalized
@@ -43,7 +62,7 @@ export const normalizeBrowserMode = (
 
 export const normalizeTempMailProvider = (
   value: string | undefined,
-): RefreshSettings['temp_mail_provider'] => {
+): TempMailProvider => {
   const normalized = value?.trim().toLowerCase()
   if (
     normalized === 'duckmail'
@@ -57,18 +76,20 @@ export const normalizeTempMailProvider = (
   return 'duckmail'
 }
 
-export const normalizeImageOutputFormat = (value: string | undefined): 'base64' | 'url' =>
+export const normalizeImageOutputFormat = (value: string | undefined): ImageOutputFormat =>
   value?.trim().toLowerCase() === 'url' ? 'url' : 'base64'
 
 export const normalizeVideoOutputFormat = (
   value: string | undefined,
-): 'html' | 'url' | 'markdown' => {
+): VideoOutputFormat => {
   const normalized = value?.trim().toLowerCase()
   if (normalized === 'url' || normalized === 'markdown') {
     return normalized
   }
-  return 'html'
+  return 'url'
 }
+
+const REMOVED_IMAGE_MODELS = new Set(['gemini-3-pro-preview'])
 
 export const normalizeStringArray = (values: Array<string | undefined> | undefined) => {
   if (!Array.isArray(values)) {
@@ -84,7 +105,7 @@ export const normalizeStringArray = (values: Array<string | undefined> | undefin
     }
 
     const normalized = value.trim()
-    if (!normalized || seen.has(normalized)) {
+    if (!normalized || REMOVED_IMAGE_MODELS.has(normalized) || seen.has(normalized)) {
       continue
     }
 

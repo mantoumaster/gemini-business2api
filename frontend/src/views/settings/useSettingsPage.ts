@@ -2,7 +2,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useToast } from '@/composables/useToast'
 import { useSettingsStore } from '@/stores/settings'
-import type { Settings } from '@/types/api'
+import type { Settings } from '@/types/settings'
 import {
   DEFAULT_COOLDOWN_HOURS,
   browserModeOptions,
@@ -10,6 +10,7 @@ import {
   tempMailProviderOptions,
   videoOutputOptions,
 } from './settingsOptions'
+import { SETTINGS_LIMITS } from './settingsConstraints'
 import { clampDecimal, clampInteger, toCooldownHours } from './settingsHelpers'
 import { normalizeSettings } from './settingsNormalize'
 import { syncRefreshMirrors } from './settingsRefresh'
@@ -43,7 +44,7 @@ export function useSettingsPage() {
   const createCooldownHoursBinding = (
     key: 'text_rate_limit_cooldown_seconds' | 'images_rate_limit_cooldown_seconds' | 'videos_rate_limit_cooldown_seconds',
     fallbackHours: number,
-    maxHours = 24,
+    maxHours = SETTINGS_LIMITS.retry.textCooldownSeconds.max / 3600,
   ) => createNumberInputBinding(
     () => toCooldownHours(localSettings.value?.retry?.[key], fallbackHours),
     (value) => {
@@ -68,7 +69,11 @@ export function useSettingsPage() {
         localSettings.value.retry.max_account_switch_tries = value
       }
     },
-    (value) => clampInteger(value, 1, 20),
+    (value) => clampInteger(
+      value,
+      SETTINGS_LIMITS.retry.maxAccountSwitchTries.min,
+      SETTINGS_LIMITS.retry.maxAccountSwitchTries.max,
+    ),
   )
 
   const textCooldownHoursInput = createCooldownHoursBinding(
@@ -93,7 +98,11 @@ export function useSettingsPage() {
         localSettings.value.retry.session_cache_ttl_seconds = value
       }
     },
-    (value) => clampInteger(value, 0, 86400),
+    (value) => clampInteger(
+      value,
+      SETTINGS_LIMITS.retry.sessionCacheTtlSeconds.min,
+      SETTINGS_LIMITS.retry.sessionCacheTtlSeconds.max,
+    ),
   )
 
   const registerDefaultCountInput = createRefreshNumberBinding(
@@ -103,8 +112,8 @@ export function useSettingsPage() {
         localSettings.value.refresh_settings.register_default_count = value
       }
     },
-    1,
-    200,
+    SETTINGS_LIMITS.refresh.registerDefaultCount.min,
+    SETTINGS_LIMITS.refresh.registerDefaultCount.max,
   )
 
   const refreshWindowHoursInput = createRefreshNumberBinding(
@@ -114,8 +123,8 @@ export function useSettingsPage() {
         localSettings.value.refresh_settings.refresh_window_hours = value
       }
     },
-    0,
-    24,
+    SETTINGS_LIMITS.refresh.refreshWindowHours.min,
+    SETTINGS_LIMITS.refresh.refreshWindowHours.max,
   )
 
   const autoRefreshAccountsSecondsInput = createRefreshNumberBinding(
@@ -125,8 +134,8 @@ export function useSettingsPage() {
         localSettings.value.refresh_settings.auto_refresh_accounts_seconds = value
       }
     },
-    0,
-    86400,
+    SETTINGS_LIMITS.refresh.autoRefreshAccountsSeconds.min,
+    SETTINGS_LIMITS.refresh.autoRefreshAccountsSeconds.max,
   )
 
   const scheduledRefreshIntervalMinutesInput = createRefreshNumberBinding(
@@ -136,8 +145,8 @@ export function useSettingsPage() {
         localSettings.value.refresh_settings.scheduled_refresh_interval_minutes = value
       }
     },
-    0,
-    720,
+    SETTINGS_LIMITS.refresh.scheduledRefreshIntervalMinutes.min,
+    SETTINGS_LIMITS.refresh.scheduledRefreshIntervalMinutes.max,
   )
 
   const verificationCodeResendCountInput = createRefreshNumberBinding(
@@ -147,8 +156,8 @@ export function useSettingsPage() {
         localSettings.value.refresh_settings.verification_code_resend_count = value
       }
     },
-    0,
-    5,
+    SETTINGS_LIMITS.refresh.verificationCodeResendCount.min,
+    SETTINGS_LIMITS.refresh.verificationCodeResendCount.max,
   )
 
   const refreshBatchSizeInput = createRefreshNumberBinding(
@@ -158,8 +167,8 @@ export function useSettingsPage() {
         localSettings.value.refresh_settings.refresh_batch_size = value
       }
     },
-    1,
-    50,
+    SETTINGS_LIMITS.refresh.refreshBatchSize.min,
+    SETTINGS_LIMITS.refresh.refreshBatchSize.max,
   )
 
   const refreshBatchIntervalMinutesInput = createRefreshNumberBinding(
@@ -169,8 +178,8 @@ export function useSettingsPage() {
         localSettings.value.refresh_settings.refresh_batch_interval_minutes = value
       }
     },
-    0,
-    720,
+    SETTINGS_LIMITS.refresh.refreshBatchIntervalMinutes.min,
+    SETTINGS_LIMITS.refresh.refreshBatchIntervalMinutes.max,
   )
 
   const refreshCooldownHoursInput = createNumberInputBinding(
@@ -180,7 +189,11 @@ export function useSettingsPage() {
         localSettings.value.refresh_settings.refresh_cooldown_hours = value
       }
     },
-    (value) => clampDecimal(value, 0, 168),
+    (value) => clampDecimal(
+      value,
+      SETTINGS_LIMITS.refresh.refreshCooldownHours.min,
+      SETTINGS_LIMITS.refresh.refreshCooldownHours.max,
+    ),
   )
 
   const minAccountCountInput = createRefreshNumberBinding(
@@ -190,8 +203,8 @@ export function useSettingsPage() {
         localSettings.value.refresh_settings.min_account_count = value
       }
     },
-    0,
-    1000,
+    SETTINGS_LIMITS.refresh.minAccountCount.min,
+    SETTINGS_LIMITS.refresh.minAccountCount.max,
   )
 
   const quotaTextDailyLimitInput = createNumberInputBinding(
@@ -201,7 +214,11 @@ export function useSettingsPage() {
         localSettings.value.quota_limits.text_daily_limit = value
       }
     },
-    (value) => clampInteger(value, 0, 999999),
+    (value) => clampInteger(
+      value,
+      SETTINGS_LIMITS.quota.dailyLimit.min,
+      SETTINGS_LIMITS.quota.dailyLimit.max,
+    ),
   )
 
   const quotaImagesDailyLimitInput = createNumberInputBinding(
@@ -211,7 +228,11 @@ export function useSettingsPage() {
         localSettings.value.quota_limits.images_daily_limit = value
       }
     },
-    (value) => clampInteger(value, 0, 999999),
+    (value) => clampInteger(
+      value,
+      SETTINGS_LIMITS.quota.dailyLimit.min,
+      SETTINGS_LIMITS.quota.dailyLimit.max,
+    ),
   )
 
   const quotaVideosDailyLimitInput = createNumberInputBinding(
@@ -221,7 +242,11 @@ export function useSettingsPage() {
         localSettings.value.quota_limits.videos_daily_limit = value
       }
     },
-    (value) => clampInteger(value, 0, 999999),
+    (value) => clampInteger(
+      value,
+      SETTINGS_LIMITS.quota.dailyLimit.min,
+      SETTINGS_LIMITS.quota.dailyLimit.max,
+    ),
   )
 
   const sessionExpireHoursInput = createNumberInputBinding(
@@ -231,12 +256,15 @@ export function useSettingsPage() {
         localSettings.value.session.expire_hours = value
       }
     },
-    (value) => clampInteger(value, 1, 168),
+    (value) => clampInteger(
+      value,
+      SETTINGS_LIMITS.session.expireHours.min,
+      SETTINGS_LIMITS.session.expireHours.max,
+    ),
   )
 
   const imageModelOptions = computed(() => {
     const options = [
-      { label: 'Gemini 3 Pro Preview', value: 'gemini-3-pro-preview' },
       { label: 'Gemini 3.1 Pro Preview', value: 'gemini-3.1-pro-preview' },
       { label: 'Gemini 3 Flash Preview', value: 'gemini-3-flash-preview' },
       { label: 'Gemini 2.5 Pro', value: 'gemini-2.5-pro' },

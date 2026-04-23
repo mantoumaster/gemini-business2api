@@ -4,21 +4,24 @@ import { accountsApi } from '@/api'
 import type {
   AccountConfigItem,
   AccountListStatus,
+  AccountBulkActionResponse,
   AccountsListParams,
   AccountsListResponse,
   AdminAccount,
-} from '@/types/api'
+} from '@/types/accounts'
 
 type AccountOpResult = {
   ok: boolean
   errors: string[]
 }
 
+type AccountOpRequestResponse = Pick<AccountBulkActionResponse, 'errors'> | void
+
 type RunOpOptions = {
   accountIds?: string[]
   lockKeys?: string[]
   chunkSize?: number
-  request: (chunk: string[]) => Promise<{ errors?: string[] } | void>
+  request: (chunk: string[]) => Promise<AccountOpRequestResponse>
   refreshAfter?: boolean
 }
 

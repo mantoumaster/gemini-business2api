@@ -29,7 +29,7 @@
             </Button>
             <Button
               size="sm"
-              variant="primary"
+              variant="outline"
               root-class="shrink-0 whitespace-nowrap"
               @click="openImportModal"
             >
@@ -390,7 +390,7 @@
             <div>
               <p class="text-sm font-medium text-foreground">导入账户</p>
               <p class="mt-1 text-xs text-muted-foreground">
-                支持 JSON 配置文件，或粘贴 `duckmail----邮箱----密码` 这类文本格式。
+                支持 JSON 配置文件与逐行文本导入；油猴脚本复制出的 JSON 也可以直接粘贴到这里。
               </p>
             </div>
             <template #actions>
@@ -414,8 +414,17 @@
               v-model="importText"
               rows="14"
               class="ui-textarea-sm min-h-[18rem] font-mono"
-              placeholder="粘贴 JSON 数组，或一行一个的账号导入文本"
+              :placeholder="importTextareaPlaceholder"
             ></textarea>
+
+            <div class="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-xs text-muted-foreground">
+              <p class="font-medium text-foreground">支持的导入格式</p>
+              <ul class="mt-2 list-disc space-y-1.5 pl-4">
+                <li v-for="tip in importFormatTips" :key="tip">
+                  {{ tip }}
+                </li>
+              </ul>
+            </div>
 
             <div
               v-if="importError"
@@ -664,9 +673,11 @@ const {
   isImportOpen,
   importText,
   importError,
+  importFormatTips,
   isImporting,
   importFileInput,
   importFileName,
+  importTextareaPlaceholder,
   isExportOpen,
   exportScope,
   exportFormat,

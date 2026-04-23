@@ -1,13 +1,12 @@
-from __future__ import annotations
-
 import logging
 import os
 from dataclasses import dataclass
 from typing import Any, Callable
 
-from fastapi import FastAPI, Form, HTTPException, Request
+from fastapi import FastAPI, Form, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse
 
+from app.api.schemas.dashboard import DashboardTimeRange
 from app.services import get_dashboard_stats_payload
 
 
@@ -66,7 +65,7 @@ def register_system_routes(app: FastAPI, deps: SystemRouteDeps) -> None:
 
     @app.get("/admin/stats-legacy")
     @deps.require_login()
-    async def admin_stats(request: Request, time_range: str = "24h"):
+    async def admin_stats(request: Request, time_range: DashboardTimeRange = Query('24h')):
         return await get_dashboard_stats_payload(
             deps.get_multi_account_mgr(),
             deps.stats_db,

@@ -1,5 +1,5 @@
 import apiClient from './client'
-import type { Settings } from '@/types/api'
+import type { Settings } from '@/types/settings'
 
 export const settingsApi = {
   get: () =>

@@ -1,4 +1,4 @@
-import type { RefreshSettings, Settings } from '@/types/api'
+import type { RefreshSettings, Settings } from '@/types/settings'
 
 export const DEFAULT_BASIC_SETTINGS: Settings['basic'] = {
   api_key: '',
@@ -23,14 +23,14 @@ export const DEFAULT_IMAGE_GENERATION_SETTINGS: Settings['image_generation'] = {
 }
 
 export const DEFAULT_VIDEO_GENERATION_SETTINGS: Settings['video_generation'] = {
-  output_format: 'html',
+  output_format: 'url',
 }
 
 export const DEFAULT_QUOTA_LIMITS_SETTINGS: Settings['quota_limits'] = {
   enabled: true,
-  text_daily_limit: 120,
-  images_daily_limit: 2,
-  videos_daily_limit: 1,
+  text_daily_limit: 200,
+  images_daily_limit: 10,
+  videos_daily_limit: 3,
 }
 
 export const DEFAULT_PUBLIC_DISPLAY_SETTINGS: Settings['public_display'] = {

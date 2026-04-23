@@ -1,11 +1,15 @@
-from __future__ import annotations
-
 import logging
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable
 
 from fastapi import Body, FastAPI, HTTPException, Query, Request
 
+from app.api.schemas.accounts import (
+    AccountListStatus,
+    AccountMutationPayload,
+    AccountsListPayload,
+    BulkAccountMutationPayload,
+)
 from app.services import (
     bulk_delete_accounts_payload,
     bulk_set_account_disabled_payload,
@@ -40,14 +44,14 @@ class AccountRouteDeps:
 
 
 def register_account_routes(app: FastAPI, deps: AccountRouteDeps) -> None:
-    @app.get("/admin/accounts")
+    @app.get('/admin/accounts', response_model=AccountsListPayload)
     @deps.require_login()
     async def admin_get_accounts(
         request: Request,
         page: int = Query(1, ge=1),
         page_size: int = Query(50, ge=1, le=200),
         query: str | None = Query(None),
-        status: str = Query("all"),
+        status: AccountListStatus = Query('all'),
     ):
         try:
             return get_accounts_payload(
@@ -61,34 +65,34 @@ def register_account_routes(app: FastAPI, deps: AccountRouteDeps) -> None:
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
 
-    @app.get("/admin/accounts-config")
+    @app.get('/admin/accounts-config')
     @deps.require_login()
     async def admin_get_config(request: Request):
         try:
             return get_accounts_config_payload(deps.load_accounts_from_source)
         except Exception as exc:
-            deps.logger.error(f"[CONFIG] 获取账户配置失败: {str(exc)}")
-            raise HTTPException(500, f"获取失败: {str(exc)}") from exc
+            deps.logger.error(f'[CONFIG] Failed to get account config: {str(exc)}')
+            raise HTTPException(500, f'Failed to process request: {str(exc)}') from exc
 
-    @app.put("/admin/accounts-config")
+    @app.put('/admin/accounts-config', response_model=AccountMutationPayload)
     @deps.require_login()
     async def admin_update_config(request: Request, accounts_data: list[Any] = Body(...)):
         try:
             return update_accounts_config_payload(accounts_data, deps)
         except Exception as exc:
-            deps.logger.error(f"[CONFIG] 更新账户配置失败: {str(exc)}")
-            raise HTTPException(500, f"更新失败: {str(exc)}") from exc
+            deps.logger.error(f'[CONFIG] Failed to update account config: {str(exc)}')
+            raise HTTPException(500, f'Failed to process request: {str(exc)}') from exc
 
-    @app.delete("/admin/accounts/{account_id}")
+    @app.delete('/admin/accounts/{account_id}', response_model=AccountMutationPayload)
     @deps.require_login()
     async def admin_delete_account(request: Request, account_id: str):
         try:
             return delete_account_payload(account_id, deps)
         except Exception as exc:
-            deps.logger.error(f"[CONFIG] 删除账户失败: {str(exc)}")
-            raise HTTPException(500, f"删除失败: {str(exc)}") from exc
+            deps.logger.error(f'[CONFIG] Failed to delete account: {str(exc)}')
+            raise HTTPException(500, f'Failed to process request: {str(exc)}') from exc
 
-    @app.put("/admin/accounts/bulk-delete")
+    @app.put('/admin/accounts/bulk-delete', response_model=BulkAccountMutationPayload)
     @deps.require_login()
     async def admin_bulk_delete_accounts(request: Request, account_ids: list[str] = Body(...)):
         try:
@@ -97,33 +101,33 @@ def register_account_routes(app: FastAPI, deps: AccountRouteDeps) -> None:
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
         except Exception as exc:
-            deps.logger.error(f"[CONFIG] 批量删除账户失败: {str(exc)}")
-            raise HTTPException(500, f"删除失败: {str(exc)}") from exc
+            deps.logger.error(f'[CONFIG] Failed to bulk delete accounts: {str(exc)}')
+            raise HTTPException(500, f'Failed to process request: {str(exc)}') from exc
 
-    @app.put("/admin/accounts/{account_id}/disable")
+    @app.put('/admin/accounts/{account_id}/disable', response_model=AccountMutationPayload)
     @deps.require_login()
     async def admin_disable_account(request: Request, account_id: str):
         try:
             return await set_account_disabled_payload(account_id, True, deps)
         except Exception as exc:
-            deps.logger.error(f"[CONFIG] 禁用账户失败: {str(exc)}")
-            raise HTTPException(500, f"禁用失败: {str(exc)}") from exc
+            deps.logger.error(f'[CONFIG] Failed to disable account: {str(exc)}')
+            raise HTTPException(500, f'Failed to process request: {str(exc)}') from exc
 
-    @app.put("/admin/accounts/{account_id}/enable")
+    @app.put('/admin/accounts/{account_id}/enable', response_model=AccountMutationPayload)
     @deps.require_login()
     async def admin_enable_account(request: Request, account_id: str):
         try:
             return await set_account_disabled_payload(account_id, False, deps)
         except Exception as exc:
-            deps.logger.error(f"[CONFIG] 启用账户失败: {str(exc)}")
-            raise HTTPException(500, f"启用失败: {str(exc)}") from exc
+            deps.logger.error(f'[CONFIG] Failed to enable account: {str(exc)}')
+            raise HTTPException(500, f'Failed to process request: {str(exc)}') from exc
 
-    @app.put("/admin/accounts/bulk-enable")
+    @app.put('/admin/accounts/bulk-enable', response_model=BulkAccountMutationPayload)
     @deps.require_login()
     async def admin_bulk_enable_accounts(request: Request, account_ids: list[str] = Body(...)):
         return bulk_set_account_disabled_payload(account_ids, False, deps)
 
-    @app.put("/admin/accounts/bulk-disable")
+    @app.put('/admin/accounts/bulk-disable', response_model=BulkAccountMutationPayload)
     @deps.require_login()
     async def admin_bulk_disable_accounts(request: Request, account_ids: list[str] = Body(...)):
         return bulk_set_account_disabled_payload(account_ids, True, deps)

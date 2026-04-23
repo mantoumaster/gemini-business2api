@@ -30,9 +30,7 @@ apiClient.interceptors.response.use(
       isRedirecting = false
     }
 
-    const errorMessage = error.response?.data
-      ? (error.response.data as any).detail || (error.response.data as any).message
-      : error.message
+    const errorMessage = resolveErrorMessage(error)
 
     const wrapped = new Error(errorMessage || '请求失败') as Error & {
       status?: number
@@ -46,3 +44,28 @@ apiClient.interceptors.response.use(
 )
 
 export default apiClient
+
+function resolveErrorMessage(error: AxiosError) {
+  const data = error.response?.data as any
+
+  if (Array.isArray(data?.detail)) {
+    return data.detail
+      .map((item: any) => {
+        const location = Array.isArray(item?.loc) ? item.loc.slice(1).join('.') : ''
+        const message = String(item?.msg || '').trim()
+        return location ? `${location}: ${message}` : message
+      })
+      .filter(Boolean)
+      .join('\n')
+  }
+
+  if (typeof data?.detail === 'string' && data.detail.trim()) {
+    return data.detail.trim()
+  }
+
+  if (typeof data?.message === 'string' && data.message.trim()) {
+    return data.message.trim()
+  }
+
+  return error.message
+}

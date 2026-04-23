@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.api.schemas.dashboard import DashboardTimeRange
+
 
 def _summarize_account_states(multi_account_mgr: Any) -> dict[str, int]:
     active_accounts = 0
@@ -40,7 +42,7 @@ def _summarize_account_states(multi_account_mgr: Any) -> dict[str, int]:
 async def get_dashboard_stats_payload(
     multi_account_mgr: Any,
     stats_db: Any,
-    time_range: str,
+    time_range: DashboardTimeRange,
 ) -> dict[str, Any]:
     summary = _summarize_account_states(multi_account_mgr)
     trend_data = await stats_db.get_stats_by_time_range(time_range)

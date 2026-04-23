@@ -1,10 +1,12 @@
-import type { RefreshSettings, Settings } from '@/types/api'
+import type { RefreshSettings, Settings } from '@/types/settings'
 import { createDefaultRefreshSettings } from './settingsDefaults'
+import { SETTINGS_LIMITS } from './settingsConstraints'
 import {
+  normalizeDecimal,
   normalizeBrowserMode,
+  normalizeInteger,
   normalizeTempMailProvider,
   pickBoolean,
-  pickNumber,
   pickString,
 } from './settingsHelpers'
 
@@ -24,39 +26,61 @@ export const hydrateRefreshSettings = (source: Partial<Settings>): RefreshSettin
     mail_proxy_enabled: pickBoolean(defaults.mail_proxy_enabled ?? false, current.mail_proxy_enabled),
     browser_mode: browserMode,
     browser_headless: browserMode === 'headless',
-    refresh_window_hours: pickNumber(defaults.refresh_window_hours ?? 1, current.refresh_window_hours),
+    refresh_window_hours: normalizeInteger(
+      defaults.refresh_window_hours ?? 1,
+      SETTINGS_LIMITS.refresh.refreshWindowHours.min,
+      SETTINGS_LIMITS.refresh.refreshWindowHours.max,
+      current.refresh_window_hours,
+    ),
     register_domain: pickString(defaults.register_domain ?? '', current.register_domain),
-    register_default_count: pickNumber(
+    register_default_count: normalizeInteger(
       defaults.register_default_count ?? 20,
+      SETTINGS_LIMITS.refresh.registerDefaultCount.min,
+      SETTINGS_LIMITS.refresh.registerDefaultCount.max,
       current.register_default_count,
     ),
-    auto_refresh_accounts_seconds: pickNumber(
+    auto_refresh_accounts_seconds: normalizeInteger(
       defaults.auto_refresh_accounts_seconds ?? 60,
+      SETTINGS_LIMITS.refresh.autoRefreshAccountsSeconds.min,
+      SETTINGS_LIMITS.refresh.autoRefreshAccountsSeconds.max,
       current.auto_refresh_accounts_seconds,
     ),
     scheduled_refresh_enabled: pickBoolean(
       defaults.scheduled_refresh_enabled ?? false,
       current.scheduled_refresh_enabled,
     ),
-    scheduled_refresh_interval_minutes: pickNumber(
+    scheduled_refresh_interval_minutes: normalizeInteger(
       defaults.scheduled_refresh_interval_minutes ?? 30,
+      SETTINGS_LIMITS.refresh.scheduledRefreshIntervalMinutes.min,
+      SETTINGS_LIMITS.refresh.scheduledRefreshIntervalMinutes.max,
       current.scheduled_refresh_interval_minutes,
     ),
     scheduled_refresh_cron: pickString(
       defaults.scheduled_refresh_cron ?? '',
       current.scheduled_refresh_cron,
     ),
-    verification_code_resend_count: pickNumber(
+    verification_code_resend_count: normalizeInteger(
       defaults.verification_code_resend_count ?? 2,
+      SETTINGS_LIMITS.refresh.verificationCodeResendCount.min,
+      SETTINGS_LIMITS.refresh.verificationCodeResendCount.max,
       current.verification_code_resend_count,
     ),
-    refresh_batch_size: pickNumber(defaults.refresh_batch_size ?? 5, current.refresh_batch_size),
-    refresh_batch_interval_minutes: pickNumber(
+    refresh_batch_size: normalizeInteger(
+      defaults.refresh_batch_size ?? 5,
+      SETTINGS_LIMITS.refresh.refreshBatchSize.min,
+      SETTINGS_LIMITS.refresh.refreshBatchSize.max,
+      current.refresh_batch_size,
+    ),
+    refresh_batch_interval_minutes: normalizeInteger(
       defaults.refresh_batch_interval_minutes ?? 30,
+      SETTINGS_LIMITS.refresh.refreshBatchIntervalMinutes.min,
+      SETTINGS_LIMITS.refresh.refreshBatchIntervalMinutes.max,
       current.refresh_batch_interval_minutes,
     ),
-    refresh_cooldown_hours: pickNumber(
+    refresh_cooldown_hours: normalizeDecimal(
       defaults.refresh_cooldown_hours ?? 12,
+      SETTINGS_LIMITS.refresh.refreshCooldownHours.min,
+      SETTINGS_LIMITS.refresh.refreshCooldownHours.max,
       current.refresh_cooldown_hours,
     ),
     delete_expired_accounts: pickBoolean(
@@ -67,7 +91,12 @@ export const hydrateRefreshSettings = (source: Partial<Settings>): RefreshSettin
       defaults.auto_register_enabled ?? false,
       current.auto_register_enabled,
     ),
-    min_account_count: pickNumber(defaults.min_account_count ?? 0, current.min_account_count),
+    min_account_count: normalizeInteger(
+      defaults.min_account_count ?? 0,
+      SETTINGS_LIMITS.refresh.minAccountCount.min,
+      SETTINGS_LIMITS.refresh.minAccountCount.max,
+      current.min_account_count,
+    ),
     duckmail: {
       ...defaults.duckmail,
       ...current.duckmail,
@@ -118,6 +147,11 @@ export const syncRefreshMirrors = (payload: Settings) => {
 
   refreshSettings.browser_mode = browserMode
   refreshSettings.browser_headless = browserMode === 'headless'
-  payload.retry.rate_limit_cooldown_seconds = payload.retry.text_rate_limit_cooldown_seconds
+  payload.retry.rate_limit_cooldown_seconds = normalizeInteger(
+    payload.retry.text_rate_limit_cooldown_seconds,
+    SETTINGS_LIMITS.retry.textCooldownSeconds.min,
+    SETTINGS_LIMITS.retry.textCooldownSeconds.max,
+    payload.retry.text_rate_limit_cooldown_seconds,
+  )
   payload.refresh_settings = refreshSettings
 }

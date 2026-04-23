@@ -1,6 +1,7 @@
-import type { Settings } from '@/types/api'
+import type { Settings } from '@/types/settings'
 import {
   normalizeImageOutputFormat,
+  normalizeInteger,
   normalizeStringArray,
   normalizeVideoOutputFormat,
   pickBoolean,
@@ -17,6 +18,7 @@ import {
   DEFAULT_SESSION_SETTINGS,
   DEFAULT_VIDEO_GENERATION_SETTINGS,
 } from './settingsDefaults'
+import { SETTINGS_LIMITS } from './settingsConstraints'
 import { hydrateRefreshSettings } from './settingsRefresh'
 
 export const normalizeSettings = (value: Settings | null | undefined): Settings => {
@@ -39,30 +41,50 @@ export const normalizeSettings = (value: Settings | null | undefined): Settings 
         DEFAULT_BASIC_SETTINGS.proxy_for_chat || '',
         next.basic?.proxy_for_chat,
       ),
-      image_expire_hours: pickNumber(
+      image_expire_hours: normalizeInteger(
         DEFAULT_BASIC_SETTINGS.image_expire_hours || 12,
+        SETTINGS_LIMITS.basic.imageExpireHours.min,
+        SETTINGS_LIMITS.basic.imageExpireHours.max,
         next.basic?.image_expire_hours,
       ),
     },
     retry: {
       ...DEFAULT_RETRY_SETTINGS,
       ...next.retry,
-      max_account_switch_tries: pickNumber(
+      max_account_switch_tries: normalizeInteger(
         DEFAULT_RETRY_SETTINGS.max_account_switch_tries,
+        SETTINGS_LIMITS.retry.maxAccountSwitchTries.min,
+        SETTINGS_LIMITS.retry.maxAccountSwitchTries.max,
         next.retry?.max_account_switch_tries,
       ),
-      rate_limit_cooldown_seconds: textRateLimitCooldownSeconds,
-      text_rate_limit_cooldown_seconds: textRateLimitCooldownSeconds,
-      images_rate_limit_cooldown_seconds: pickNumber(
+      rate_limit_cooldown_seconds: normalizeInteger(
+        DEFAULT_RETRY_SETTINGS.text_rate_limit_cooldown_seconds,
+        SETTINGS_LIMITS.retry.textCooldownSeconds.min,
+        SETTINGS_LIMITS.retry.textCooldownSeconds.max,
+        textRateLimitCooldownSeconds,
+      ),
+      text_rate_limit_cooldown_seconds: normalizeInteger(
+        DEFAULT_RETRY_SETTINGS.text_rate_limit_cooldown_seconds,
+        SETTINGS_LIMITS.retry.textCooldownSeconds.min,
+        SETTINGS_LIMITS.retry.textCooldownSeconds.max,
+        textRateLimitCooldownSeconds,
+      ),
+      images_rate_limit_cooldown_seconds: normalizeInteger(
         DEFAULT_RETRY_SETTINGS.images_rate_limit_cooldown_seconds,
+        SETTINGS_LIMITS.retry.imagesCooldownSeconds.min,
+        SETTINGS_LIMITS.retry.imagesCooldownSeconds.max,
         next.retry?.images_rate_limit_cooldown_seconds,
       ),
-      videos_rate_limit_cooldown_seconds: pickNumber(
+      videos_rate_limit_cooldown_seconds: normalizeInteger(
         DEFAULT_RETRY_SETTINGS.videos_rate_limit_cooldown_seconds,
+        SETTINGS_LIMITS.retry.videosCooldownSeconds.min,
+        SETTINGS_LIMITS.retry.videosCooldownSeconds.max,
         next.retry?.videos_rate_limit_cooldown_seconds,
       ),
-      session_cache_ttl_seconds: pickNumber(
+      session_cache_ttl_seconds: normalizeInteger(
         DEFAULT_RETRY_SETTINGS.session_cache_ttl_seconds,
+        SETTINGS_LIMITS.retry.sessionCacheTtlSeconds.min,
+        SETTINGS_LIMITS.retry.sessionCacheTtlSeconds.max,
         next.retry?.session_cache_ttl_seconds,
       ),
     },
@@ -87,23 +109,34 @@ export const normalizeSettings = (value: Settings | null | undefined): Settings 
     session: {
       ...DEFAULT_SESSION_SETTINGS,
       ...next.session,
-      expire_hours: pickNumber(DEFAULT_SESSION_SETTINGS.expire_hours, next.session?.expire_hours),
+      expire_hours: normalizeInteger(
+        DEFAULT_SESSION_SETTINGS.expire_hours,
+        SETTINGS_LIMITS.session.expireHours.min,
+        SETTINGS_LIMITS.session.expireHours.max,
+        next.session?.expire_hours,
+      ),
     },
     refresh_settings: hydrateRefreshSettings(next),
     quota_limits: {
       ...DEFAULT_QUOTA_LIMITS_SETTINGS,
       ...next.quota_limits,
       enabled: pickBoolean(DEFAULT_QUOTA_LIMITS_SETTINGS.enabled, next.quota_limits?.enabled),
-      text_daily_limit: pickNumber(
+      text_daily_limit: normalizeInteger(
         DEFAULT_QUOTA_LIMITS_SETTINGS.text_daily_limit,
+        SETTINGS_LIMITS.quota.dailyLimit.min,
+        SETTINGS_LIMITS.quota.dailyLimit.max,
         next.quota_limits?.text_daily_limit,
       ),
-      images_daily_limit: pickNumber(
+      images_daily_limit: normalizeInteger(
         DEFAULT_QUOTA_LIMITS_SETTINGS.images_daily_limit,
+        SETTINGS_LIMITS.quota.dailyLimit.min,
+        SETTINGS_LIMITS.quota.dailyLimit.max,
         next.quota_limits?.images_daily_limit,
       ),
-      videos_daily_limit: pickNumber(
+      videos_daily_limit: normalizeInteger(
         DEFAULT_QUOTA_LIMITS_SETTINGS.videos_daily_limit,
+        SETTINGS_LIMITS.quota.dailyLimit.min,
+        SETTINGS_LIMITS.quota.dailyLimit.max,
         next.quota_limits?.videos_daily_limit,
       ),
     },

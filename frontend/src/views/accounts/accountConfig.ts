@@ -1,5 +1,5 @@
 import { accountsApi } from '@/api'
-import type { AccountConfigItem } from '@/types/api'
+import type { AccountConfigItem } from '@/types/accounts'
 
 export type AccountEditForm = {
   id: string
