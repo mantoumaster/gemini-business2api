@@ -102,7 +102,23 @@ def _parse_version_key(value: str) -> Tuple[Tuple[int, ...], int, int, int]:
     return release, 0, pre_order.get(pre_label, 0), pre_num
 
 
-def _fetch_latest_tag(repository: str) -> Tuple[str, str]:
+def _pick_higher_version_candidate(
+    current_tag: str,
+    current_url: str,
+    incoming_tag: str,
+    incoming_url: str,
+) -> Tuple[str, str]:
+    current_key = _parse_version_key(current_tag)
+    incoming_key = _parse_version_key(incoming_tag)
+
+    if not incoming_key[0]:
+        return current_tag, current_url
+    if not current_key[0] or incoming_key > current_key:
+        return incoming_tag, incoming_url
+    return current_tag, current_url
+
+
+def _fetch_latest_release(repository: str) -> Tuple[str, str]:
     headers = {
         "Accept": "application/vnd.github+json",
         "User-Agent": "gemini-business2api-update-check",
@@ -116,14 +132,35 @@ def _fetch_latest_tag(repository: str) -> Tuple[str, str]:
             html_url = str(payload.get("html_url") or "").strip()
             if latest_tag:
                 return latest_tag, html_url
+    return "", ""
 
-        tags_resp = client.get(f"https://api.github.com/repos/{repository}/tags?per_page=1")
+
+def _fetch_latest_tag(repository: str) -> Tuple[str, str]:
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "gemini-business2api-update-check",
+    }
+
+    with httpx.Client(timeout=10.0, follow_redirects=True, headers=headers) as client:
+        tags_resp = client.get(f"https://api.github.com/repos/{repository}/tags?per_page=100")
         tags_resp.raise_for_status()
         items = tags_resp.json() if isinstance(tags_resp.json(), list) else []
         if not items:
             raise RuntimeError("no tags found in upstream repository")
-        first = items[0] or {}
-        return str(first.get("name") or "").strip(), f"https://github.com/{repository}/tags"
+
+        latest_tag = ""
+        for item in items:
+            candidate = str((item or {}).get("name") or "").strip()
+            latest_tag, _ = _pick_higher_version_candidate(
+                latest_tag,
+                "",
+                candidate,
+                "",
+            )
+
+        if not latest_tag:
+            raise RuntimeError("no valid tags found in upstream repository")
+        return latest_tag, f"https://github.com/{repository}/tags"
 
 
 def _fetch_latest_tag_from_git_remote() -> Tuple[str, str]:
@@ -163,7 +200,15 @@ def get_update_status(repository: Optional[str] = None) -> Dict[str, object]:
     error = ""
 
     try:
-        latest_tag, release_url = _fetch_latest_tag(repo)
+        release_tag, release_page_url = _fetch_latest_release(repo)
+        tag_name, tag_page_url = _fetch_latest_tag(repo)
+
+        latest_tag, release_url = _pick_higher_version_candidate(
+            release_tag,
+            release_page_url,
+            tag_name,
+            tag_page_url,
+        )
         latest_version = _normalize_tag(latest_tag)
     except Exception as exc:
         error = str(exc)
